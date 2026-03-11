@@ -1,302 +1,345 @@
-    "use client"
-
-    import { useEffect,useState } from "react"
-    import { Bar } from "react-chartjs-2"
-
-    import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-    } from "chart.js"
-
-    ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-    )
-
-    /* ======================
-    TYPES
-    ====================== */
+"use client"
 
-    interface Review{
-    user:string
-    comment:string
-    rating:number
-    }
+import { useEffect,useState } from "react"
+import { Bar } from "react-chartjs-2"
 
-    interface Farmer{
-    _id:string
-    name:string
-    farmName:string
-    location:string
-    experience:number
-    rating:number
-    totalHarvests:number
-    profilePhoto:string
-    reviews:Review[]
-    }
+import {
+ Chart as ChartJS,
+ CategoryScale,
+ LinearScale,
+ BarElement,
+ Title,
+ Tooltip,
+ Legend
+} from "chart.js"
 
-    interface Production{
-    herbs:{[key:string]:number}
-    totalHarvests:number
-    totalQuantity:number
-    }
+ChartJS.register(
+ CategoryScale,
+ LinearScale,
+ BarElement,
+ Title,
+ Tooltip,
+ Legend
+)
 
-    interface Demand{
-    herbs:{[key:string]:number}
-    mostDemanded:[string,number]
-    leastDemanded:[string,number]
-    }
+interface Review{
+ user:string
+ comment:string
+ rating:number
+}
 
-    /* ======================
-    COMPONENT
-    ====================== */
+interface Farmer{
+ _id:string
+ name:string
+ farmName:string
+ location:string
+ experience:number
+ rating:number
+ totalHarvests:number
+ profilePhoto:string
+ reviews:Review[]
+}
 
-    export default function FarmerHome(){
+interface Production{
+ herbs:{[key:string]:number}
+ totalHarvests:number
+ totalQuantity:number
+}
 
-    const [farmer,setFarmer] = useState<Farmer | null>(null)
-    const [herbStats,setHerbStats] = useState<Production | null>(null)
-    const [regionStats,setRegionStats] = useState<{[key:string]:number}>({})
-    const [recommendation,setRecommendation] = useState<string>("")
+export default function FarmerHome(){
 
-    useEffect(()=>{
+const API = "http://localhost:5000"
 
-    const id = localStorage.getItem("farmerId")
-    if(!id) return
+const [farmer,setFarmer] = useState<Farmer | null>(null)
+const [herbStats,setHerbStats] = useState<Production | null>(null)
+const [regionStats,setRegionStats] = useState<{[key:string]:number}>({})
+const [image,setImage] = useState<File | null>(null)
 
-    fetch(`http://localhost:5000/api/farmer/${id}`)
-    .then(res=>res.json())
-    .then(data=>{
+/* ======================
+LOAD FARMER DATA
+====================== */
 
-    setFarmer(data)
+useEffect(()=>{
 
-    fetch(`http://localhost:5000/api/production/${data._id}`)
-    .then(res=>res.json())
-    .then(setHerbStats)
+const id = localStorage.getItem("farmerId")
 
-    fetch(`http://localhost:5000/api/production/region/${data.location}`)
-    .then(res=>res.json())
-    .then(setRegionStats)
+if(!id) return
 
-    fetch(`http://localhost:5000/api/analytics/demand`)
-    .then(res=>res.json())
-    .then(res=>{
+fetch(`${API}/api/farmer/${id}`)
+.then(res=>res.json())
+.then(data=>{
 
-        if(res.leastDemanded){
-        setRecommendation(res.leastDemanded[0])
-        }
+ setFarmer(data)
 
-    })
+ /* FARMER HERB STATS */
 
-    })
+ fetch(`${API}/api/production/${data._id}`)
+ .then(res=>res.json())
+ .then(setHerbStats)
 
-    },[])
+ /* REGIONAL COMPARISON */
 
-    if(!farmer){
-    return <div className="text-white text-xl">Loading...</div>
-    }
+ fetch(`${API}/api/production/region/${data.location}`)
+ .then(res=>res.json())
+ .then(setRegionStats)
 
-    /* SAFE DATA */
+})
 
-    const herbs = herbStats?.herbs || {}
-    const region = regionStats || {}
+},[])
 
-    /* CHART OPTIONS */
+/* ======================
+UPLOAD PROFILE PHOTO
+====================== */
 
-    const chartOptions={
+async function uploadPhoto(){
 
-    responsive:true,
-    maintainAspectRatio:false,
+if(!image || !farmer) return
 
-    plugins:{legend:{display:false}},
+const formData = new FormData()
 
-    scales:{
-    x:{ticks:{color:"#a7f3d0"}},
-    y:{ticks:{color:"#a7f3d0"}}
-    }
+formData.append("image",image)
 
-    }
+const upload = await fetch(`${API}/api/upload/profile`,{
 
-    /* HERB CHART */
+method:"POST",
+body:formData
 
-    const herbChart={
+})
 
-    labels:Object.keys(herbs),
+const uploadData = await upload.json()
 
-    datasets:[{
-    label:"Herb Production",
-    data:Object.values(herbs),
-    backgroundColor:"#22c55e",
-    borderRadius:6
-    }]
+await fetch(`${API}/api/farmer/photo/${farmer._id}`,{
 
-    }
+method:"PUT",
 
-    /* REGION CHART */
+headers:{
+"Content-Type":"application/json"
+},
 
-    const regionChart={
+body:JSON.stringify({
 
-    labels:Object.keys(region),
+profilePhoto:uploadData.path
 
-    datasets:[{
-    label:"Regional Production",
-    data:Object.values(region),
-    backgroundColor:"#4ade80",
-    borderRadius:6
-    }]
+})
 
-    }
+})
 
-    return(
+window.location.reload()
 
-    <div className="space-y-8">
+}
 
-    {/* PROFILE */}
+if(!farmer){
 
-    <div className="flex items-center gap-6 bg-[#062c21] p-6 rounded-xl shadow-lg">
+return(
+<div className="text-white text-xl">
+Loading...
+</div>
+)
 
-    <img
-    src={
-        farmer.profilePhoto?.startsWith("data:")
-        ? farmer.profilePhoto
-        : `http://localhost:5000${farmer.profilePhoto}`
-    }
-    className="w-24 h-24 rounded-full border-4 border-green-500 object-cover"
-    />
+}
 
-    <div>
+/* ======================
+HERB CHART DATA
+====================== */
 
-    <h2 className="text-2xl font-bold">{farmer.name}</h2>
+const herbs = herbStats?.herbs || {}
 
-    <div className="text-yellow-400 mt-1 text-lg">
-        {"⭐".repeat(Math.round(farmer.rating))}
-        <span className="text-gray-300 ml-2">
-        ({farmer.rating}/5)
-        </span>
-    </div>
+const herbChart={
 
-    </div>
+labels:Object.keys(herbs),
 
-    </div>
+datasets:[{
+label:"Herb Production",
+data:Object.values(herbs),
+backgroundColor:"#22c55e",
+borderRadius:6
+}]
 
-    {/* FARM INFO */}
+}
 
-    <div className="grid grid-cols-4 gap-6">
+/* ======================
+REGION CHART DATA
+====================== */
 
-    <div className="bg-[#062c21] p-5 rounded-xl shadow-md">
-    <p className="text-gray-400 text-sm">Farm Name</p>
-    <p className="text-lg">{farmer.farmName}</p>
-    </div>
+const regionChart={
 
-    <div className="bg-[#062c21] p-5 rounded-xl shadow-md">
-    <p className="text-gray-400 text-sm">Location</p>
-    <p className="text-lg">{farmer.location}</p>
-    </div>
+labels:Object.keys(regionStats),
 
-    <div className="bg-[#062c21] p-5 rounded-xl shadow-md">
-    <p className="text-gray-400 text-sm">Experience</p>
-    <p className="text-lg">{farmer.experience} yrs</p>
-    </div>
+datasets:[{
+label:"Regional Farmer Production",
+data:Object.values(regionStats),
+backgroundColor:"#4ade80",
+borderRadius:6
+}]
 
-    <div className="bg-[#062c21] p-5 rounded-xl shadow-md">
-    <p className="text-gray-400 text-sm">Total Harvests</p>
-    <p className="text-lg">{herbStats?.totalHarvests || 0}</p>
-    </div>
+}
 
-    </div>
+/* ======================
+CHART OPTIONS
+====================== */
 
-    {/* CHARTS */}
+const chartOptions={
 
-    <div className="grid grid-cols-2 gap-6">
+responsive:true,
+maintainAspectRatio:false,
 
-    <div className="bg-[#062c21] p-6 rounded-xl shadow-lg">
+plugins:{
+ legend:{display:false}
+},
 
-    <h3 className="text-lg mb-4">
-        Herb Cultivation
-    </h3>
+scales:{
+ x:{ticks:{color:"#a7f3d0"}},
+ y:{ticks:{color:"#a7f3d0"}}
+}
 
-    <div className="h-[250px]">
-        <Bar data={herbChart} options={chartOptions}/>
-    </div>
+}
 
-    </div>
+/* ======================
+UI
+====================== */
 
-    <div className="bg-[#062c21] p-6 rounded-xl shadow-lg">
+return(
 
-    <h3 className="text-lg mb-4">
-        Regional Farmer Comparison
-    </h3>
+<div className="space-y-8">
 
-    <div className="h-[250px]">
-        <Bar data={regionChart} options={chartOptions}/>
-    </div>
+{/* PROFILE */}
 
-    </div>
+<div className="flex items-center gap-6 bg-[#062c21] p-6 rounded-xl shadow-lg">
 
-    </div>
+<img
+src={`${API}${farmer.profilePhoto}`}
+className="w-24 h-24 rounded-full border-4 border-green-500 object-cover"
+/>
 
-    {/* AI RECOMMENDATION */}
+<div>
 
-    {recommendation &&(
+<h2 className="text-2xl font-bold">{farmer.name}</h2>
 
-    <div className="bg-[#062c21] p-6 rounded-xl shadow-lg">
+<div className="text-yellow-400 mt-1 text-lg">
 
-    <h3 className="text-lg mb-3 text-green-400">
-    AI Crop Recommendation
-    </h3>
+{"⭐".repeat(Math.round(farmer.rating))}
 
-    <p>
-    Based on market demand analysis, cultivating
-    <span className="text-green-400 font-semibold"> {recommendation}</span>
-    is recommended because its supply is currently low.
-    </p>
+<span className="text-gray-300 ml-2">
+({farmer.rating}/5)
+</span>
 
-    </div>
+</div>
 
-    )}
+{/* PROFILE PHOTO SELECT */}
 
-    {/* REVIEWS */}
+<div className="mt-4">
 
-    <div className="bg-[#062c21] p-6 rounded-xl shadow-lg">
+<input
+type="file"
+onChange={(e)=>setImage(e.target.files?.[0] || null)}
+className="text-sm"
+/>
 
-    <h3 className="text-lg mb-4">
-    Customer Reviews
-    </h3>
+<button
+onClick={uploadPhoto}
+className="bg-green-600 px-4 py-1 rounded mt-2"
+>
 
-    {farmer.reviews.length===0 &&(
-    <p className="text-gray-400">No reviews yet</p>
-    )}
+Upload Photo
 
-    {farmer.reviews.map((r,i)=>(
+</button>
 
-    <div key={i} className="border-b border-green-900 py-3">
+</div>
 
-        <div className="text-yellow-400">
-        {"⭐".repeat(r.rating)}
-        </div>
+</div>
 
-        <p>{r.comment}</p>
+</div>
 
-        <p className="text-sm text-gray-400">
-        - {r.user}
-        </p>
+{/* FARM INFO */}
 
-    </div>
+<div className="grid grid-cols-4 gap-6">
 
-    ))}
+<div className="bg-[#062c21] p-5 rounded-xl">
 
-    </div>
+<p className="text-gray-400 text-sm">
+Farm Name
+</p>
 
-    </div>
+<p className="text-lg">
+{farmer.farmName}
+</p>
 
-    )
+</div>
 
-    }
+<div className="bg-[#062c21] p-5 rounded-xl">
+
+<p className="text-gray-400 text-sm">
+Location
+</p>
+
+<p className="text-lg">
+{farmer.location}
+</p>
+
+</div>
+
+<div className="bg-[#062c21] p-5 rounded-xl">
+
+<p className="text-gray-400 text-sm">
+Experience
+</p>
+
+<p className="text-lg">
+{farmer.experience} yrs
+</p>
+
+</div>
+
+<div className="bg-[#062c21] p-5 rounded-xl">
+
+<p className="text-gray-400 text-sm">
+Total Harvests
+</p>
+
+<p className="text-lg">
+{herbStats?.totalHarvests || 0}
+</p>
+
+</div>
+
+</div>
+
+{/* CHARTS */}
+
+<div className="grid grid-cols-2 gap-6">
+
+{/* HERB CHART */}
+
+<div className="bg-[#062c21] p-6 rounded-xl">
+
+<h3 className="text-lg mb-4">
+Herb Cultivation
+</h3>
+
+<div className="h-[250px]">
+<Bar data={herbChart} options={chartOptions}/>
+</div>
+
+</div>
+
+{/* REGIONAL COMPARISON */}
+
+<div className="bg-[#062c21] p-6 rounded-xl">
+
+<h3 className="text-lg mb-4">
+Regional Farmer Comparison
+</h3>
+
+<div className="h-[250px]">
+<Bar data={regionChart} options={chartOptions}/>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+)
+
+}

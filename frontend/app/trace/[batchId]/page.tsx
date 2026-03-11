@@ -1,172 +1,176 @@
 "use client"
 
+import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
-import { QRCodeCanvas } from "qrcode.react"
 
-interface Batch {
-  batchId: string
-  herbName: string
-  farmer: string
-  quantity: number
-  location: string
-}
+export default function TracePage() {
 
-interface Packet {
-  packetId: string
-  batchId: string
-  herbName: string
-  weight: number
-}
+const { id } = useParams()
 
-export default function PackagingPage() {
+const API =
+process.env.NEXT_PUBLIC_API_URL ||
+"http://localhost:5000"
 
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-  const BASE = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+const [batch,setBatch] = useState<any>(null)
+const [packet,setPacket] = useState<any>(null)
+const [loading,setLoading] = useState(true)
+const [error,setError] = useState("")
 
-  const [batches, setBatches] = useState<Batch[]>([])
-  const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
-  const [packets, setPackets] = useState<Packet[]>([])
-  const [loading, setLoading] = useState(false)
+/* ============================
+   FETCH TRACE DATA
+============================ */
 
-  useEffect(() => {
+useEffect(()=>{
 
-    fetch(`${API}/api/batches`)
-      .then(res => res.json())
-      .then(data => setBatches(data))
-      .catch(err => console.error(err))
+async function loadTrace(){
 
-  }, [])
+ try{
 
-  const generatePackets = async () => {
+  const res = await fetch(
+   `${API}/api/trace/${id}`
+  )
 
-    if (!selectedBatch) return
-
-    setLoading(true)
-
-    const res = await fetch(`${API}/api/packets/create`, {
-
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-
-      body: JSON.stringify({
-
-        batchId: selectedBatch.batchId,
-        herbName: selectedBatch.herbName,
-        totalWeight: selectedBatch.quantity * 1000,
-        packetWeight: 250
-
-      })
-
-    })
-
-    const data = await res.json()
-
-    if (data.packets) {
-      setPackets(data.packets)
-    }
-
-    setLoading(false)
+  if(!res.ok){
+   throw new Error("Trace API failed")
   }
 
-  return (
+  const text = await res.text()
 
-    <div className="p-8 text-white">
+  /* Detect HTML response */
 
-      <h1 className="text-3xl mb-6 text-green-400">
-        Packaging & QR Generation
-      </h1>
+  if(text.startsWith("<!DOCTYPE")){
+   throw new Error("API returned HTML instead of JSON")
+  }
 
-      {/* SELECT BATCH */}
+  const data = JSON.parse(text)
 
-      <select
-        className="w-full p-3 bg-[#062f27] rounded"
-        onChange={(e) => {
+  if(data.type === "packet"){
+   setBatch(data.batch)
+   setPacket(data.packet)
+  }
 
-          const batch = batches.find(
-            b => b.batchId === e.target.value
-          )
+  if(data.type === "batch"){
+   setBatch(data.batch)
+  }
 
-          if (batch) setSelectedBatch(batch)
+ }catch(err:any){
 
-        }}
-      >
+  console.error(err)
+  setError("Unable to load trace data")
 
-        <option>Select Batch</option>
+ }
 
-        {batches.map(batch => (
+ setLoading(false)
 
-          <option key={batch.batchId} value={batch.batchId}>
-            {batch.batchId} - {batch.herbName}
-          </option>
+}
 
-        ))}
+loadTrace()
 
-      </select>
+},[id,API])
 
-      {/* BATCH DETAILS */}
+/* ============================
+   LOADING
+============================ */
 
-      {selectedBatch && (
+if(loading){
+ return(
+  <div className="p-10 text-white">
+   Loading trace data...
+  </div>
+ )
+}
 
-        <div className="mt-6 bg-[#083d34] p-6 rounded">
+/* ============================
+   ERROR
+============================ */
 
-          <p><b>Batch:</b> {selectedBatch.batchId}</p>
-          <p><b>Herb:</b> {selectedBatch.herbName}</p>
-          <p><b>Farmer:</b> {selectedBatch.farmer}</p>
-          <p><b>Location:</b> {selectedBatch.location}</p>
-          <p><b>Quantity:</b> {selectedBatch.quantity} kg</p>
+if(error){
+ return(
+  <div className="p-10 text-red-400">
+   {error}
+  </div>
+ )
+}
 
-          <div className="mt-4">
+/* ============================
+   PAGE UI
+============================ */
 
-            <p className="mb-2 text-green-400">
-              Farmer Batch QR
-            </p>
+return(
 
-            <QRCodeCanvas
-              value={`${BASE}/trace/${selectedBatch.batchId}`}
-              size={120}
-            />
+<div className="min-h-screen bg-[#041f17] text-white p-10">
 
-          </div>
+<h1 className="text-3xl text-green-400 mb-6">
+🌿 Herb Traceability
+</h1>
 
-          <button
-            onClick={generatePackets}
-            className="mt-6 bg-green-600 px-4 py-2 rounded"
-          >
-            {loading ? "Generating..." : "Generate QR Codes"}
-          </button>
+{/* BATCH INFO */}
 
-        </div>
+<div className="bg-[#062c21] p-6 rounded-xl space-y-3">
 
-      )}
+<p><b>Herb :</b> {batch.herbName}</p>
 
-      {/* PACKETS */}
+<p><b>Batch ID :</b> {batch.batchId}</p>
 
-      {packets.length > 0 && (
+{packet && (
+<p><b>Packet ID :</b> {packet.packetId}</p>
+)}
 
-        <div className="mt-6 grid grid-cols-5 gap-4">
+<p><b>Farmer :</b> {batch.farmer}</p>
 
-          {packets.map(packet => (
+<p><b>Harvest Date :</b> {batch.harvestDate}</p>
 
-            <div key={packet.packetId} className="bg-[#062f27] p-4 rounded">
+<p><b>Quantity :</b> {batch.quantity} kg</p>
 
-              <QRCodeCanvas
-                value={`${BASE}/trace/${packet.packetId}`}
-                size={100}
-              />
+<p><b>Location :</b> {batch.location}</p>
 
-              <p className="text-xs mt-2 break-all">
-                {packet.packetId}
-              </p>
+</div>
 
-            </div>
 
-          ))}
+{/* GPS IMAGE */}
 
-        </div>
+{batch.geoImage &&(
 
-      )}
+<div className="mt-6">
 
-    </div>
+<p className="text-green-400 mb-2">
+Farm GPS Location
+</p>
 
-  )
+<img
+src={batch.geoImage}
+className="rounded-lg border border-green-700 w-full max-w-xl"
+/>
+
+</div>
+
+)}
+
+
+{/* BLOCKCHAIN */}
+
+<div className="mt-6 bg-[#062c21] p-4 rounded">
+
+<p className="text-green-400">
+Blockchain Hash
+</p>
+
+<p className="break-all text-sm">
+{batch.hash}
+</p>
+
+<p className="text-yellow-400 mt-2">
+Previous Hash
+</p>
+
+<p className="break-all text-sm">
+{batch.previousHash}
+</p>
+
+</div>
+
+</div>
+
+)
+
 }

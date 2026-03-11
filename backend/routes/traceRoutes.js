@@ -10,12 +10,19 @@ router.get("/trace/:id", async (req,res)=>{
 
  const id = req.params.id
 
- // Check packet first
+ /* ==============================
+    CHECK IF QR IS PACKET
+ ============================== */
+
  const packet = await Packet.findOne({packetId:id})
 
  if(packet){
 
   const batch = await Batch.findOne({batchId:packet.batchId})
+
+  if(!batch){
+   return res.status(404).json({error:"Batch not found"})
+  }
 
   return res.json({
    type:"packet",
@@ -25,7 +32,10 @@ router.get("/trace/:id", async (req,res)=>{
 
  }
 
- // Check batch QR
+ /* ==============================
+    CHECK IF QR IS BATCH
+ ============================== */
+
  const batch = await Batch.findOne({batchId:id})
 
  if(batch){
@@ -37,11 +47,21 @@ router.get("/trace/:id", async (req,res)=>{
 
  }
 
- res.status(404).json({error:"Trace not found"})
+ /* ==============================
+    NOT FOUND
+ ============================== */
+
+ return res.status(404).json({
+  error:"Trace not found"
+ })
 
  }catch(err){
 
- res.status(500).json({error:err.message})
+ console.error(err)
+
+ res.status(500).json({
+  error:"Server error"
+ })
 
  }
 

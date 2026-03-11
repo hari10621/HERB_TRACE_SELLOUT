@@ -206,5 +206,30 @@ router.put("/farmer/review/:id", async(req,res)=>{
 
 })
 
+router.put("/farmer/profile/:id", async(req,res)=>{
+
+ try{
+
+ const farmer = await Farmer.findByIdAndUpdate(
+
+ req.params.id,
+
+ { profilePhoto:req.body.profilePhoto },
+
+ { new:true }
+
+ )
+
+ res.json(farmer)
+
+ }
+ catch(err){
+
+ res.status(500).json({error:err.message})
+
+ }
+
+})
+
 
 module.exports = router

@@ -21,7 +21,7 @@ interface Packet {
 export default function PackagingPage() {
 
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-  const BASE = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+  const BASE = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000"
 
   const [batches, setBatches] = useState<Batch[]>([])
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
@@ -29,7 +29,7 @@ export default function PackagingPage() {
   const [loading, setLoading] = useState(false)
 
   /* ===============================
-     LOAD BATCHES FROM DATABASE
+     LOAD BATCHES
   =============================== */
 
   useEffect(() => {
@@ -37,13 +37,15 @@ export default function PackagingPage() {
     fetch(`${API}/api/batches`)
       .then(res => res.json())
       .then(data => {
+
         if (Array.isArray(data)) {
           setBatches(data)
         }
+
       })
       .catch(err => console.error("Batch fetch error:", err))
 
-  }, [])
+  }, [API])
 
 
   /* ===============================
@@ -163,7 +165,9 @@ export default function PackagingPage() {
           <p><b>Location:</b> {selectedBatch.location}</p>
 
 
-          {/* FARMER QR */}
+          {/* ===============================
+             FARMER BATCH QR
+          =============================== */}
 
           <div className="mt-6">
 
@@ -172,17 +176,19 @@ export default function PackagingPage() {
             </p>
 
             <QRCodeCanvas
-              value={`${BASE}/trace/${selectedBatch.batchId}`}
+              value={`${BASE}/api/trace/${selectedBatch.batchId}`}
               size={120}
             />
 
           </div>
 
 
-          {/* GENERATE BUTTON */}
+          {/* ===============================
+             GENERATE PACKETS BUTTON
+          =============================== */}
 
           <button
-            className="bg-green-600 px-4 py-2 rounded mt-6"
+            className="bg-green-600 px-4 py-2 rounded mt-6 hover:bg-green-700 transition"
             onClick={generatePackets}
             disabled={loading}
           >
@@ -198,7 +204,7 @@ export default function PackagingPage() {
 
 
       {/* ===============================
-         GENERATED PACKET QR GRID
+         PACKET QR GRID
       =============================== */}
 
       {packets.length > 0 && (
@@ -219,7 +225,7 @@ export default function PackagingPage() {
               >
 
                 <QRCodeCanvas
-                  value={`${BASE}/trace/${packet.packetId}`}
+                  value={`${BASE}/api/trace/${packet.packetId}`}
                   size={100}
                 />
 

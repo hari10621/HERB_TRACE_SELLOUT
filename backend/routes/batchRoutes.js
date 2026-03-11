@@ -2,8 +2,7 @@ const express = require("express")
 const router = express.Router()
 
 const Batch = require("../models/Batch")
-const Farmer = require("../models/Farmer") // IMPORTANT
-
+const Farmer = require("../models/Farmer")
 
 /* ==========================
    GET ALL BATCHES
@@ -15,14 +14,16 @@ router.get("/batches", async (req,res)=>{
 
   const batches = await Batch
    .find()
-   .sort({createdAt:-1})
+   .sort({ createdAt:-1 })
 
   res.json(batches)
 
  }
  catch(err){
 
-  res.status(500).json({error:err.message})
+  res.status(500).json({
+   error:err.message
+  })
 
  }
 
@@ -39,14 +40,16 @@ router.get("/batches/farmer/:farmerId", async(req,res)=>{
 
   const batches = await Batch
    .find({ farmerId:req.params.farmerId })
-   .sort({createdAt:-1})
+   .sort({ createdAt:-1 })
 
   res.json(batches)
 
  }
  catch(err){
 
-  res.status(500).json({error:err.message})
+  res.status(500).json({
+   error:err.message
+  })
 
  }
 
@@ -63,26 +66,29 @@ router.post("/batches", async (req,res)=>{
 
   const farmer = await Farmer.findById(req.body.farmerId)
 
+  if(!farmer){
+   return res.status(404).json({
+    error:"Farmer not found"
+   })
+  }
+
   const count = await Batch.countDocuments()
 
   const batchId =
    "HB-" + (count+1).toString().padStart(4,"0")
 
-
   const lastBlock = await Batch
    .findOne()
-   .sort({createdAt:-1})
+   .sort({ createdAt:-1 })
 
   const previousHash =
    lastBlock ? lastBlock.hash : "GENESIS"
 
-
   const lat = req.body.latitude
   const lon = req.body.longitude
 
-
   const geoImage =
-   `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=15&size=600x300&markers=color:red%7C${lat},${lon}`
+  `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=15&size=600x300&markers=color:red%7C${lat},${lon}`
 
 
   const batch = new Batch({
@@ -122,12 +128,27 @@ router.post("/batches", async (req,res)=>{
 
   await batch.save()
 
+
+  /* ==========================
+     UPDATE FARMER STATS
+  ========================== */
+
+  await Farmer.findByIdAndUpdate(
+   farmer._id,
+   {
+    $inc:{ totalHarvests:1 }
+   }
+  )
+
+
   res.json(batch)
 
  }
  catch(err){
 
-  res.status(500).json({error:err.message})
+  res.status(500).json({
+   error:err.message
+  })
 
  }
 
@@ -159,11 +180,18 @@ router.get("/batch/:batchId", async(req,res)=>{
  }
  catch(err){
 
-  res.status(500).json({error:err.message})
+  res.status(500).json({
+   error:err.message
+  })
 
  }
 
 })
+
+
+/* ==========================
+   RECEIVE BATCH
+========================== */
 
 router.post("/batch/receive", async(req,res)=>{
 
@@ -172,29 +200,33 @@ router.post("/batch/receive", async(req,res)=>{
  const { qrData } = req.body
 
  const batch = await Batch.findOne({
- batchId:qrData
+  batchId:qrData
  })
 
  if(!batch){
 
- return res.status(404).json({
- message:"Batch not found"
- })
+  return res.status(404).json({
+   message:"Batch not found"
+  })
 
  }
 
- batch.status="received"
+ batch.status = "received"
 
  await batch.save()
 
  res.json(batch)
 
- }catch(err){
+ }
+ catch(err){
 
- res.status(500).json({error:err.message})
+  res.status(500).json({
+   error:err.message
+  })
 
  }
 
 })
+
 
 module.exports = router

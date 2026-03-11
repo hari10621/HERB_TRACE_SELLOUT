@@ -6,24 +6,73 @@ const Batch = require("../models/Batch")
 const SupplierBatch = require("../models/SupplierBatch")
 
 /* ===============================
-   SUPPLIER LOGIN
+   SUPPLIER LOGIN OR CREATE
 =============================== */
 
 router.post("/supplier/login", async(req,res)=>{
 
- const {email,password} = req.body
+ try{
 
- const supplier = await Supplier.findOne({email,password})
+ const { email,password } = req.body
+
+ let supplier = await Supplier.findOne({ email })
+
+ /* IF SUPPLIER DOES NOT EXIST → CREATE */
 
  if(!supplier){
-  return res.status(401).json({message:"Invalid credentials"})
+
+  supplier = new Supplier({
+
+   name: email.split("@")[0],
+   email,
+   password,
+
+   companyName:"Herbal Distributor",
+
+   licenseNumber:"LIC-"+Date.now(),
+
+   location:"Tamil Nadu",
+
+   experience:1,
+
+   phone:"0000000000",
+
+   totalBatchesReceived:0,
+   processedHerbs:0,
+   inventoryStock:0
+
+  })
+
+  await supplier.save()
+
+ }
+
+ /* PASSWORD CHECK */
+
+ if(supplier.password !== password){
+
+  return res.status(401).json({
+   message:"Invalid password"
+  })
+
  }
 
  res.json({
+
   message:"Login successful",
+
   supplierId:supplier._id,
+
   name:supplier.name
+
  })
+
+ }
+ catch(err){
+
+ res.status(500).json({error:err.message})
+
+ }
 
 })
 

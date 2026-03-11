@@ -13,25 +13,25 @@ const app = express()
 =============================== */
 
 app.use(express.json())
-app.use(express.urlencoded({extended:true}))
+app.use(express.urlencoded({ extended: true }))
 app.use(cors())
 
 /* ===============================
    STATIC FILES
 =============================== */
 
-app.use("/uploads", express.static(path.join(__dirname,"uploads")))
+app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 /* ===============================
    DATABASE
 =============================== */
 
 mongoose.connect(process.env.MONGO_URI)
-.then(()=>console.log("MongoDB Connected"))
-.catch(err=>console.error("MongoDB Error:",err))
+.then(() => console.log("✅ MongoDB Connected"))
+.catch(err => console.error("❌ MongoDB Error:", err))
 
 /* ===============================
-   ROUTES
+   ROUTES IMPORT
 =============================== */
 
 const farmerRoutes = require("./routes/farmerRoutes")
@@ -48,6 +48,8 @@ const packetRoutes = require("./routes/packetRoutes")
 const inventoryRoutes = require("./routes/inventoryRoutes")
 const traceRoutes = require("./routes/traceRoutes")
 const receiveRoutes = require("./routes/receiveRoutes")
+
+const consumerRoutes = require("./routes/consumerRoutes")
 
 /* ===============================
    API ROUTES
@@ -68,22 +70,24 @@ app.use("/api", inventoryRoutes)
 app.use("/api", traceRoutes)
 app.use("/api", receiveRoutes)
 
+app.use("/api", consumerRoutes)
+
 console.log("✅ All routes loaded")
 
 /* ===============================
-   TEST ROUTE
+   ROOT TEST ROUTE
 =============================== */
 
-app.get("/",(req,res)=>{
-res.send("🌿 HerbTrace Backend Running")
+app.get("/", (req, res) => {
+ res.send("🌿 HerbTrace Backend Running")
 })
 
 /* ===============================
-   SERVER
+   SERVER START
 =============================== */
 
 const PORT = process.env.PORT || 5000
 
-app.listen(PORT,()=>{
-console.log(`🚀 Server running on port ${PORT}`)
-})
+app.listen(PORT, () => {
+ console.log(`🚀 Server running on port ${PORT}`)
+}) 
