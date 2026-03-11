@@ -439,3 +439,5 @@ HerbTrace Project
 # ⭐ Project Goal
 
 To build a **transparent, secure, and verifiable herbal supply chain** using **blockchain, QR technology, and modern web architecture**.
+
+na tha pepo hola nigga
