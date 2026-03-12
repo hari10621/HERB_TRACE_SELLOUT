@@ -68,20 +68,20 @@ const submitProcessing = async () => {
  "Content-Type":"application/json"
  },
 
- body:JSON.stringify({
+body:JSON.stringify({
 
- herbName:herb,
- farmerName:farmer,
- quantity,
- temperature,
- duration,
- method,
- yieldPercent,
- waste,
- latitude,
- longitude
+herbName:herb,
+farmerName:farmer,
+quantity:Number(quantity),
+temperature:Number(temperature),
+duration,
+method,
+yieldPercent:Number(yieldPercent),
+waste:Number(waste),
+latitude,
+longitude
 
- })
+})
 
  })
 

@@ -6,7 +6,7 @@ const Batch = require("../models/Batch")
 const SupplierBatch = require("../models/SupplierBatch")
 
 /* ===============================
-   SUPPLIER LOGIN OR CREATE
+   SUPPLIER LOGIN
 =============================== */
 
 router.post("/supplier/login", async(req,res)=>{
@@ -16,8 +16,6 @@ router.post("/supplier/login", async(req,res)=>{
  const { email,password } = req.body
 
  let supplier = await Supplier.findOne({ email })
-
- /* IF SUPPLIER DOES NOT EXIST → CREATE */
 
  if(!supplier){
 
@@ -47,8 +45,6 @@ router.post("/supplier/login", async(req,res)=>{
 
  }
 
- /* PASSWORD CHECK */
-
  if(supplier.password !== password){
 
   return res.status(401).json({
@@ -62,7 +58,6 @@ router.post("/supplier/login", async(req,res)=>{
   message:"Login successful",
 
   supplierId:supplier._id,
-
   name:supplier.name
 
  })
@@ -75,6 +70,7 @@ router.post("/supplier/login", async(req,res)=>{
  }
 
 })
+
 
 /* ===============================
    GET SUPPLIER PROFILE
@@ -100,6 +96,7 @@ router.get("/supplier/:id", async(req,res)=>{
 
 })
 
+
 /* ===============================
    VERIFY FARMER BATCH
 =============================== */
@@ -116,17 +113,30 @@ router.get("/supplier/verify/:batchId", async(req,res)=>{
 
 })
 
+
 /* ===============================
-   APPROVE BATCH (SAVE TO SUPPLIER)
+   APPROVE BATCH
 =============================== */
 
 router.post("/supplier/approve", async(req,res)=>{
 
- const batch = await Batch.findOne({batchId:req.body.batchId})
+ try{
+
+ const { batchId, supplierId } = req.body
+
+ const batch = await Batch.findOne({batchId})
 
  if(!batch){
   return res.status(404).json({message:"Batch not found"})
  }
+
+ const supplier = await Supplier.findById(supplierId)
+
+ if(!supplier){
+  return res.status(404).json({message:"Supplier not found"})
+ }
+
+ /* SAVE SUPPLIER BATCH */
 
  const supplierBatch = new SupplierBatch({
 
@@ -137,17 +147,33 @@ router.post("/supplier/approve", async(req,res)=>{
   unit:batch.unit,
   harvestDate:batch.harvestDate,
   location:batch.location,
-  supplierId:req.body.supplierId
+  supplierId:supplierId
 
  })
 
  await supplierBatch.save()
 
+
+ /* UPDATE SUPPLIER STATS */
+
+ supplier.totalBatchesReceived += 1
+ supplier.processedHerbs += batch.quantity
+ supplier.inventoryStock += batch.quantity
+
+ await supplier.save()
+
  res.json({
-  message:"Batch approved and moved to supplier inventory"
+  message:"Batch approved and inventory updated"
  })
 
+ }catch(err){
+
+  res.status(500).json({error:err.message})
+
+ }
+
 })
+
 
 /* ===============================
    GET SUPPLIER BATCHES
@@ -155,11 +181,19 @@ router.post("/supplier/approve", async(req,res)=>{
 
 router.get("/supplier/batches/:supplierId", async(req,res)=>{
 
+ try{
+
  const batches = await SupplierBatch.find({
   supplierId:req.params.supplierId
  })
 
  res.json(batches)
+
+ }catch(err){
+
+ res.status(500).json({error:err.message})
+
+ }
 
 })
 

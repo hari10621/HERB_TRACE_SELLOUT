@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect,useState } from "react"
+import { useRouter } from "next/navigation"
 import { Bar } from "react-chartjs-2"
 
 import {
@@ -8,7 +9,6 @@ import {
  CategoryScale,
  LinearScale,
  BarElement,
- Title,
  Tooltip,
  Legend
 } from "chart.js"
@@ -17,53 +17,27 @@ ChartJS.register(
  CategoryScale,
  LinearScale,
  BarElement,
- Title,
  Tooltip,
  Legend
 )
 
-interface Review{
- user:string
- comment:string
- rating:number
-}
-
-interface Farmer{
- _id:string
- name:string
- farmName:string
- location:string
- experience:number
- rating:number
- totalHarvests:number
- profilePhoto:string
- reviews:Review[]
-}
-
-interface Production{
- herbs:{[key:string]:number}
- totalHarvests:number
- totalQuantity:number
-}
-
 export default function FarmerHome(){
 
+const router = useRouter()
 const API = "http://localhost:5000"
 
-const [farmer,setFarmer] = useState<Farmer | null>(null)
-const [herbStats,setHerbStats] = useState<Production | null>(null)
-const [regionStats,setRegionStats] = useState<{[key:string]:number}>({})
-const [image,setImage] = useState<File | null>(null)
-
-/* ======================
-LOAD FARMER DATA
-====================== */
+const [farmer,setFarmer] = useState<any>(null)
+const [herbStats,setHerbStats] = useState<any>(null)
+const [regionStats,setRegionStats] = useState<any>({})
 
 useEffect(()=>{
 
 const id = localStorage.getItem("farmerId")
 
-if(!id) return
+if(!id){
+ router.push("/login/farmer")
+ return
+}
 
 fetch(`${API}/api/farmer/${id}`)
 .then(res=>res.json())
@@ -71,13 +45,9 @@ fetch(`${API}/api/farmer/${id}`)
 
  setFarmer(data)
 
- /* FARMER HERB STATS */
-
  fetch(`${API}/api/production/${data._id}`)
  .then(res=>res.json())
  .then(setHerbStats)
-
- /* REGIONAL COMPARISON */
 
  fetch(`${API}/api/production/region/${data.location}`)
  .then(res=>res.json())
@@ -87,254 +57,139 @@ fetch(`${API}/api/farmer/${id}`)
 
 },[])
 
-/* ======================
-UPLOAD PROFILE PHOTO
-====================== */
-
-async function uploadPhoto(){
-
-if(!image || !farmer) return
-
-const formData = new FormData()
-
-formData.append("image",image)
-
-const upload = await fetch(`${API}/api/upload/profile`,{
-
-method:"POST",
-body:formData
-
-})
-
-const uploadData = await upload.json()
-
-await fetch(`${API}/api/farmer/photo/${farmer._id}`,{
-
-method:"PUT",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-
-profilePhoto:uploadData.path
-
-})
-
-})
-
-window.location.reload()
-
-}
-
 if(!farmer){
-
-return(
-<div className="text-white text-xl">
-Loading...
-</div>
-)
-
+ return <div className="text-white p-10">Loading...</div>
 }
-
-/* ======================
-HERB CHART DATA
-====================== */
 
 const herbs = herbStats?.herbs || {}
 
 const herbChart={
-
-labels:Object.keys(herbs),
-
-datasets:[{
-label:"Herb Production",
-data:Object.values(herbs),
-backgroundColor:"#22c55e",
-borderRadius:6
-}]
-
+ labels:Object.keys(herbs),
+ datasets:[
+  {
+   label:"Production (kg)",
+   data:Object.values(herbs),
+   backgroundColor:"#22c55e"
+  }
+ ]
 }
-
-/* ======================
-REGION CHART DATA
-====================== */
 
 const regionChart={
-
-labels:Object.keys(regionStats),
-
-datasets:[{
-label:"Regional Farmer Production",
-data:Object.values(regionStats),
-backgroundColor:"#4ade80",
-borderRadius:6
-}]
-
+ labels:Object.keys(regionStats),
+ datasets:[
+  {
+   label:"Regional Production",
+   data:Object.values(regionStats),
+   backgroundColor:"#4ade80"
+  }
+ ]
 }
-
-/* ======================
-CHART OPTIONS
-====================== */
-
-const chartOptions={
-
-responsive:true,
-maintainAspectRatio:false,
-
-plugins:{
- legend:{display:false}
-},
-
-scales:{
- x:{ticks:{color:"#a7f3d0"}},
- y:{ticks:{color:"#a7f3d0"}}
-}
-
-}
-
-/* ======================
-UI
-====================== */
 
 return(
 
-<div className="space-y-8">
+<div className="space-y-8 text-white">
 
 {/* PROFILE */}
 
-<div className="flex items-center gap-6 bg-[#062c21] p-6 rounded-xl shadow-lg">
+<div className="bg-[#062c21] p-6 rounded-xl flex gap-6">
 
 <img
-src={`${API}${farmer.profilePhoto}`}
-className="w-24 h-24 rounded-full border-4 border-green-500 object-cover"
+src={farmer.profilePhoto || "/default.png"}
+className="w-24 h-24 rounded-full border-4 border-green-500"
 />
 
 <div>
 
 <h2 className="text-2xl font-bold">{farmer.name}</h2>
 
-<div className="text-yellow-400 mt-1 text-lg">
+<div className="text-yellow-400">
 
-{"⭐".repeat(Math.round(farmer.rating))}
+{"⭐".repeat(Math.round(farmer.rating || 0))}
 
-<span className="text-gray-300 ml-2">
+<span className="ml-2 text-gray-300">
 ({farmer.rating}/5)
 </span>
 
 </div>
 
-{/* PROFILE PHOTO SELECT */}
-
-<div className="mt-4">
-
-<input
-type="file"
-onChange={(e)=>setImage(e.target.files?.[0] || null)}
-className="text-sm"
-/>
-
-<button
-onClick={uploadPhoto}
-className="bg-green-600 px-4 py-1 rounded mt-2"
->
-
-Upload Photo
-
-</button>
-
 </div>
 
 </div>
 
-</div>
 
 {/* FARM INFO */}
 
 <div className="grid grid-cols-4 gap-6">
 
-<div className="bg-[#062c21] p-5 rounded-xl">
-
-<p className="text-gray-400 text-sm">
-Farm Name
-</p>
-
-<p className="text-lg">
-{farmer.farmName}
-</p>
-
+<div className="bg-[#062c21] p-4 rounded">
+Farm: {farmer.farmName}
 </div>
 
-<div className="bg-[#062c21] p-5 rounded-xl">
-
-<p className="text-gray-400 text-sm">
-Location
-</p>
-
-<p className="text-lg">
-{farmer.location}
-</p>
-
+<div className="bg-[#062c21] p-4 rounded">
+Location: {farmer.location}
 </div>
 
-<div className="bg-[#062c21] p-5 rounded-xl">
-
-<p className="text-gray-400 text-sm">
-Experience
-</p>
-
-<p className="text-lg">
-{farmer.experience} yrs
-</p>
-
+<div className="bg-[#062c21] p-4 rounded">
+Experience: {farmer.experience} yrs
 </div>
 
-<div className="bg-[#062c21] p-5 rounded-xl">
-
-<p className="text-gray-400 text-sm">
-Total Harvests
-</p>
-
-<p className="text-lg">
-{herbStats?.totalHarvests || 0}
-</p>
-
+<div className="bg-[#062c21] p-4 rounded">
+Total Harvests: {herbStats?.totalHarvests || 0}
 </div>
 
 </div>
+
 
 {/* CHARTS */}
 
 <div className="grid grid-cols-2 gap-6">
 
-{/* HERB CHART */}
+<div className="bg-[#062c21] p-6 rounded">
+
+<h3>Herb Cultivation</h3>
+
+<div className="h-[250px]">
+<Bar data={herbChart}/>
+</div>
+
+</div>
+
+<div className="bg-[#062c21] p-6 rounded">
+
+<h3>Regional Farmer Comparison</h3>
+
+<div className="h-[250px]">
+<Bar data={regionChart}/>
+</div>
+
+</div>
+
+</div>
+
+
+{/* REVIEWS */}
 
 <div className="bg-[#062c21] p-6 rounded-xl">
 
-<h3 className="text-lg mb-4">
-Herb Cultivation
-</h3>
+<h3 className="text-xl mb-4">Farmer Reviews</h3>
 
-<div className="h-[250px]">
-<Bar data={herbChart} options={chartOptions}/>
-</div>
+{farmer.reviews?.length === 0 && (
+<p className="text-gray-400">No reviews yet</p>
+)}
 
-</div>
+{farmer.reviews?.map((r:any,i:number)=>(
+<div key={i} className="border-b border-green-800 pb-3 mb-3">
 
-{/* REGIONAL COMPARISON */}
+<p className="text-green-400">{r.user}</p>
 
-<div className="bg-[#062c21] p-6 rounded-xl">
+<p className="text-yellow-400">
+{"⭐".repeat(r.rating)}
+</p>
 
-<h3 className="text-lg mb-4">
-Regional Farmer Comparison
-</h3>
-
-<div className="h-[250px]">
-<Bar data={regionChart} options={chartOptions}/>
-</div>
+<p className="text-gray-300">{r.comment}</p>
 
 </div>
+))}
 
 </div>
 

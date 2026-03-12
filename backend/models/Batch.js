@@ -3,126 +3,122 @@ const crypto = require("crypto")
 
 const BatchSchema = new mongoose.Schema({
 
- batchId:{
-  type:String,
-  required:true,
-  unique:true
- },
+batchId:{
+type:String,
+required:true,
+unique:true
+},
 
- herbName:{
-  type:String,
-  required:true
- },
+herbName:{
+type:String,
+required:true
+},
 
- /* FARMER INFO */
+quantity:{
+type:Number,
+required:true
+},
 
- farmer:{
-  type:String,
-  required:true
- },
+unit:{
+type:String,
+default:"kg"
+},
 
- farmerId:{
-  type:String,
-  required:true
- },
+harvestDate:String,
+location:String,
 
- quantity:{
-  type:Number,
-  required:true
- },
+latitude:Number,
+longitude:Number,
+geoImage:String,
 
- unit:{
-  type:String,
-  default:"kg"
- },
+/* FARMER */
 
- harvestDate:String,
+farmer:{
+type:String,
+required:true
+},
 
- location:String,
+farmerId:{
+type:mongoose.Schema.Types.ObjectId,
+ref:"Farmer"
+},
 
- latitude:Number,
+profilePhoto:String,
+rating:Number,
 
- longitude:Number,
+/* SUPPLIER */
 
- geoImage:String,
+supplierId:{
+type:mongoose.Schema.Types.ObjectId,
+ref:"Supplier"
+},
 
- profilePhoto:String,
+supplierName:String,
+supplierCompany:String,
+supplierProcessedDate:String,
 
- rating:Number,
+/* PROCESSING */
 
+processingMethod:String,
+dryingTemperature:Number,
+processingDuration:String,
 
- /* SUPPLIER INFO */
+/* LAB */
 
- supplierId:String,
+labTested:{
+type:Boolean,
+default:false
+},
 
- supplierName:String,
+labName:String,
+labResult:String,
+labTestDate:String,
 
- supplierCompany:String,
+/* STATUS */
 
- supplierProcessedDate:String,
+status:{
+type:String,
+default:"harvested",
+enum:[
+"harvested",
+"processing",
+"tested",
+"packaged",
+"distributed"
+]
+},
 
+/* BLOCKCHAIN */
 
- /* PROCESSING */
+previousHash:String,
+hash:String,
 
- processingMethod:String,
+createdAt:{
+type:Date,
+default:Date.now
+}
 
- dryingTemperature:Number,
-
- processingDuration:String,
-
-
- /* LAB TEST */
-
- labTested:{
-  type:Boolean,
-  default:false
- },
-
- labName:String,
-
- labResult:String,
-
- labTestDate:String,
-
-
- /* BLOCKCHAIN */
-
- previousHash:String,
-
- hash:String,
-
-
- /* TIMESTAMP */
-
- createdAt:{
-  type:Date,
-  default:Date.now
- }
-
+},{
+timestamps:true
 })
-
-
-/* ==========================
-   BLOCKCHAIN HASH
-========================== */
 
 BatchSchema.methods.generateHash = function(){
 
- const data =
-  this.batchId +
-  this.herbName +
-  this.farmer +
-  this.quantity +
-  this.harvestDate +
-  this.location +
-  this.previousHash
+const data =
+this.batchId +
+this.herbName +
+this.farmer +
+this.quantity +
+this.harvestDate +
+this.location +
+this.previousHash +
+Date.now()
 
- return crypto
-  .createHash("sha256")
-  .update(data)
-  .digest("hex")
+return crypto
+.createHash("sha256")
+.update(data)
+.digest("hex")
 
 }
-
 
 module.exports = mongoose.model("Batch",BatchSchema)

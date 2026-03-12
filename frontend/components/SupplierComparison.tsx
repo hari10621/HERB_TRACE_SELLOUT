@@ -23,32 +23,40 @@ ChartJS.register(
 
 export default function SupplierComparison({data}:any){
 
-const chartData={
+ const labels = data?.length ? data.map((s:any)=>s.name) : ["No Suppliers"]
 
- labels:data.map((s:any)=>s.name),
+ const values = data?.length ? data.map((s:any)=>s.batches) : [0]
 
- datasets:[
- {
-  label:"Batches Processed",
-  data:data.map((s:any)=>s.batches),
-  backgroundColor:"#4ade80"
+ const chartData={
+  labels,
+  datasets:[
+   {
+    label:"Batches Processed",
+    data:values,
+    backgroundColor:"#4ade80"
+   }
+  ]
  }
- ]
 
-}
+ const options={
+  responsive:true,
+  maintainAspectRatio:false
+ }
 
-return(
+ return(
 
-<div className="bg-[#083d34] p-6 rounded-xl">
+ <div className="bg-[#083d34] p-6 rounded-xl">
 
-<h2 className="text-green-400 mb-4">
-Supplier Comparison
-</h2>
+  <h2 className="text-green-400 mb-4">
+   Supplier Comparison
+  </h2>
 
-<Bar data={chartData}/>
+  <div className="h-[300px]">
+   <Bar data={chartData} options={options}/>
+  </div>
 
-</div>
+ </div>
 
-)
+ )
 
 }

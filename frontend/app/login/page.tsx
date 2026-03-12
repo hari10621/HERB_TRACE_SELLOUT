@@ -1,7 +1,3 @@
-
-
-
-
 "use client"
 
 import { useRouter } from "next/navigation"
@@ -16,38 +12,60 @@ export default function LoginPage(){
    name:"Farmer",
    desc:"Manage crops & harvests",
    icon:"🌾",
-   route:"/login/farmer"
+   route:"/login/farmer",
+   role:"farmer"
   },
 
   {
    name:"Supplier",
    desc:"Track & distribute stock",
    icon:"📦",
-   route:"/login/supplier"
+   route:"/login/supplier",
+   role:"supplier"
   },
 
   {
    name:"Lab Tester",
    desc:"Verify herb quality",
    icon:"🧪",
-   route:"/login/lab"
+   route:"/login/lab",
+   role:"lab"
   },
 
   {
    name:"Consumer",
    desc:"Trace herb origins",
    icon:"🔎",
-   route:"/login/consumer"
+   route:"/login/consumer",
+   role:"consumer"
   },
 
   {
    name:"Admin",
    desc:"Oversee the network",
    icon:"🛡",
-   route:"/login/admin"
+   route:"/login/admin",
+   role:"admin"
   }
 
  ]
+
+ function handleRoleClick(role:any){
+
+  /* clear previous session */
+
+  localStorage.removeItem("farmerId")
+  localStorage.removeItem("supplierId")
+  localStorage.removeItem("consumerId")
+  localStorage.removeItem("adminId")
+
+  /* store selected role */
+
+  localStorage.setItem("loginRole",role.role)
+
+  router.push(role.route)
+
+ }
 
  return(
 
@@ -70,9 +88,7 @@ export default function LoginPage(){
     </div>
 
     <h1 className="text-5xl font-bold">
-
      🌿 Herb<span className="text-green-400">Trace</span>
-
     </h1>
 
     <p className="text-gray-400 mt-3">
@@ -95,8 +111,8 @@ export default function LoginPage(){
 
      <div
       key={index}
-      onClick={()=>router.push(role.route)}
-      className="cursor-pointer border border-[#134e3a] hover:border-green-400 rounded-2xl p-8 text-center transition duration-300 hover:scale-105 bg-[#05251c]"
+      onClick={()=>handleRoleClick(role)}
+      className="cursor-pointer border border-[#134e3a] hover:border-green-400 rounded-2xl p-8 text-center transition duration-300 hover:scale-105 bg-[#05251c] hover:bg-[#073a31]"
      >
 
       <div className="text-3xl mb-4">
@@ -130,4 +146,3 @@ export default function LoginPage(){
  )
 
 }
-

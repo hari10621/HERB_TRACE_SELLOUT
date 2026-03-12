@@ -76,4 +76,18 @@ router.get("/consumer/:id", async(req,res)=>{
 
 })
 
+const ConsumerHistory =
+require("../models/ConsumerHistory")
+
+router.get("/consumer/:id/history", async(req,res)=>{
+
+const history =
+await ConsumerHistory.find({
+consumerId:req.params.id
+}).sort({date:-1})
+
+res.json(history)
+
+})
+   
 module.exports = router

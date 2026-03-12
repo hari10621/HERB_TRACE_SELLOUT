@@ -2,129 +2,182 @@ const express = require("express")
 const router = express.Router()
 
 const Batch = require("../models/Batch")
+const Farmer = require("../models/Farmer")
 
 /* =====================================
    FARMER HERB PRODUCTION
 ===================================== */
 
-router.get("/production/:farmerId", async(req,res)=>{
+router.get("/production/:farmerId", async (req, res) => {
 
- try{
+ try {
+
+  const farmerId = req.params.farmerId
+
+  const farmer = await Farmer.findById(farmerId)
+
+  if (!farmer) {
+   return res.status(404).json({
+    error: "Farmer not found"
+   })
+  }
+
+  /* FIND ALL BATCHES CREATED BY THIS FARMER */
 
   const batches = await Batch.find({
-   farmerId:req.params.farmerId
+   $or: [
+    { farmerId: farmer._id },
+    { farmer: farmer.name }
+   ]
   })
 
   const herbs = {}
   let totalQuantity = 0
 
-  batches.forEach(b=>{
+  batches.forEach(b => {
 
-   if(!herbs[b.herbName]){
-    herbs[b.herbName] = 0
+   const herb = b.herbName || "Unknown"
+   const qty = Number(b.quantity) || 0
+
+   if (!herbs[herb]) {
+    herbs[herb] = 0
    }
 
-   herbs[b.herbName] += b.quantity
-   totalQuantity += b.quantity
+   herbs[herb] += qty
+   totalQuantity += qty
 
   })
 
   res.json({
    herbs,
-   totalHarvests:batches.length,
+   totalHarvests: batches.length,
    totalQuantity
   })
 
- }
- catch(err){
+ } catch (err) {
 
-  res.status(500).json({error:err.message})
+  res.status(500).json({
+   error: err.message
+  })
 
  }
 
 })
 
 
+
 /* =====================================
    REGIONAL FARMER COMPARISON
+   FIXED VERSION
 ===================================== */
 
-router.get("/production/region/:location", async(req,res)=>{
+router.get("/production/region/:location", async (req, res) => {
 
- try{
+ try {
+
+  const location = req.params.location
+
+  /* FIND ALL FARMERS IN THIS REGION */
+
+  const farmers = await Farmer.find({
+   location: location
+  })
+
+  const farmerNames = farmers.map(f => f.name)
+
+  /* FIND THEIR BATCHES */
 
   const batches = await Batch.find({
-   location:req.params.location
+   farmer: { $in: farmerNames }
   })
 
   const stats = {}
 
-  batches.forEach(b=>{
+  batches.forEach(b => {
 
-   if(!stats[b.farmer]){
-    stats[b.farmer] = 0
+   const farmer = b.farmer || "Unknown"
+   const qty = Number(b.quantity) || 0
+
+   if (!stats[farmer]) {
+    stats[farmer] = 0
    }
 
-   stats[b.farmer] += b.quantity
+   stats[farmer] += qty
 
   })
 
   res.json(stats)
 
- }
- catch(err){
+ } catch (err) {
 
-  res.status(500).json({error:err.message})
+  res.status(500).json({
+   error: err.message
+  })
 
  }
 
 })
+
 
 
 /* =====================================
    GLOBAL HERB DEMAND ANALYSIS
 ===================================== */
 
-router.get("/analytics/demand", async(req,res)=>{
+router.get("/analytics/demand", async (req, res) => {
 
- try{
+ try {
 
   const batches = await Batch.find()
 
   const herbs = {}
 
-  batches.forEach(b=>{
+  batches.forEach(b => {
 
-   if(!herbs[b.herbName]){
-    herbs[b.herbName] = 0
+   if (!b.herbName) return
+
+   const herb = b.herbName
+   const qty = Number(b.quantity) || 0
+
+   if (!herbs[herb]) {
+    herbs[herb] = 0
    }
 
-   herbs[b.herbName] += b.quantity
+   herbs[herb] += qty
 
   })
 
-  let mostHerb = null
-  let leastHerb = null
+  const entries = Object.entries(herbs)
 
-  const values = Object.entries(herbs)
+  if (entries.length === 0) {
 
-  if(values.length){
-
-   mostHerb = values.reduce((a,b)=>a[1]>b[1]?a:b)
-   leastHerb = values.reduce((a,b)=>a[1]<b[1]?a:b)
+   return res.json({
+    herbs: {},
+    mostDemanded: null,
+    leastDemanded: null
+   })
 
   }
 
+  const mostDemanded = entries.reduce((a, b) =>
+   a[1] > b[1] ? a : b
+  )
+
+  const leastDemanded = entries.reduce((a, b) =>
+   a[1] < b[1] ? a : b
+  )
+
   res.json({
    herbs,
-   mostDemanded:mostHerb,
-   leastDemanded:leastHerb
+   mostDemanded,
+   leastDemanded
   })
 
- }
- catch(err){
+ } catch (err) {
 
-  res.status(500).json({error:err.message})
+  res.status(500).json({
+   error: err.message
+  })
 
  }
 

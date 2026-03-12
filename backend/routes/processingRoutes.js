@@ -2,6 +2,7 @@ const express = require("express")
 const router = express.Router()
 
 const Batch = require("../models/Batch")
+const Farmer = require("../models/Farmer")
 
 /* ===============================
    CREATE PROCESSING BATCH
@@ -38,6 +39,21 @@ message:"Herb, Farmer and Quantity are required"
 }
 
 /* ===============================
+FIND FARMER
+=============================== */
+
+const farmer = await Farmer.findOne({ name: farmerName })
+
+if(!farmer){
+
+return res.status(404).json({
+success:false,
+message:"Farmer not found"
+})
+
+}
+
+/* ===============================
 GENERATE BATCH ID
 =============================== */
 
@@ -45,12 +61,6 @@ const count = await Batch.countDocuments()
 
 const batchId =
 "HB-" + (count+1).toString().padStart(4,"0")
-
-/* ===============================
-GENERATE FARMER ID
-=============================== */
-
-const farmerId = "FR-" + Date.now()
 
 /* ===============================
 PREVIOUS HASH
@@ -87,7 +97,7 @@ batchId,
 herbName,
 
 farmer:farmerName,
-farmerId,
+farmerId:farmer._id,
 
 quantity,
 unit:"kg",
@@ -100,11 +110,9 @@ latitude,
 longitude,
 geoImage,
 
-temperature,
-duration,
-method,
-yieldPercent,
-waste,
+processingMethod:method,
+dryingTemperature:temperature,
+processingDuration:duration,
 
 previousHash
 

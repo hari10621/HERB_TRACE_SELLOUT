@@ -3,6 +3,12 @@ const router = express.Router()
 
 const Packet = require("../models/Packet")
 const Batch = require("../models/Batch")
+const Farmer = require("../models/Farmer")
+const Supplier = require("../models/Supplier")
+
+/* =================================
+   TRACE QR (PACKET OR BATCH)
+================================= */
 
 router.get("/trace/:id", async (req,res)=>{
 
@@ -10,49 +16,62 @@ router.get("/trace/:id", async (req,res)=>{
 
  const id = req.params.id
 
- /* ==============================
-    CHECK IF QR IS PACKET
- ============================== */
+ let packet = null
+ let batch = null
 
- const packet = await Packet.findOne({packetId:id})
+ /* ==========================
+    CHECK PACKET
+ ========================== */
+
+ packet = await Packet.findOne({packetId:id})
 
  if(packet){
-
-  const batch = await Batch.findOne({batchId:packet.batchId})
-
-  if(!batch){
-   return res.status(404).json({error:"Batch not found"})
-  }
-
-  return res.json({
-   type:"packet",
-   packet,
-   batch
-  })
-
+  batch = await Batch.findOne({batchId:packet.batchId})
  }
 
- /* ==============================
-    CHECK IF QR IS BATCH
- ============================== */
+ /* ==========================
+    CHECK BATCH DIRECTLY
+ ========================== */
 
- const batch = await Batch.findOne({batchId:id})
-
- if(batch){
-
-  return res.json({
-   type:"batch",
-   batch
-  })
-
+ if(!batch){
+  batch = await Batch.findOne({batchId:id})
  }
 
- /* ==============================
-    NOT FOUND
- ============================== */
+ if(!batch){
+  return res.status(404).json({
+   error:"Trace not found"
+  })
+ }
 
- return res.status(404).json({
-  error:"Trace not found"
+ /* ==========================
+    FARMER
+ ========================== */
+
+ let farmer = null
+
+ if(batch.farmerId){
+  farmer = await Farmer.findById(batch.farmerId)
+ }
+
+ /* ==========================
+    SUPPLIER
+ ========================== */
+
+ let supplier = null
+
+ if(batch.supplierName){
+  supplier = await Supplier.findOne({name:batch.supplierName})
+ }
+
+ return res.json({
+
+  type: packet ? "packet" : "batch",
+
+  packet,
+  batch,
+  farmer,
+  supplier
+
  })
 
  }catch(err){

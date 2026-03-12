@@ -14,16 +14,14 @@ router.get("/batches", async (req,res)=>{
 
   const batches = await Batch
    .find()
-   .sort({ createdAt:-1 })
+   .sort({createdAt:-1})
 
   res.json(batches)
 
  }
  catch(err){
 
-  res.status(500).json({
-   error:err.message
-  })
+  res.status(500).json({error:err.message})
 
  }
 
@@ -31,25 +29,41 @@ router.get("/batches", async (req,res)=>{
 
 
 /* ==========================
-   GET FARMER BATCHES
+   GET FARMER BATCHES (FIXED)
 ========================== */
 
 router.get("/batches/farmer/:farmerId", async(req,res)=>{
 
  try{
 
-  const batches = await Batch
-   .find({ farmerId:req.params.farmerId })
-   .sort({ createdAt:-1 })
+  const farmerId = req.params.farmerId
+
+  const farmer = await Farmer.findById(farmerId)
+
+  if(!farmer){
+
+   return res.status(404).json({
+    error:"Farmer not found"
+   })
+
+  }
+
+  const batches = await Batch.find({
+
+   $or:[
+    { farmerId: farmerId },
+    { farmerId: farmerId.toString() },
+    { farmer: farmer.name }
+   ]
+
+  }).sort({createdAt:-1})
 
   res.json(batches)
 
  }
  catch(err){
 
-  res.status(500).json({
-   error:err.message
-  })
+  res.status(500).json({error:err.message})
 
  }
 
@@ -57,7 +71,7 @@ router.get("/batches/farmer/:farmerId", async(req,res)=>{
 
 
 /* ==========================
-   CREATE BATCH
+   CREATE BATCH (BLOCKCHAIN)
 ========================== */
 
 router.post("/batches", async (req,res)=>{
@@ -67,22 +81,32 @@ router.post("/batches", async (req,res)=>{
   const farmer = await Farmer.findById(req.body.farmerId)
 
   if(!farmer){
+
    return res.status(404).json({
     error:"Farmer not found"
    })
+
   }
+
+  /* GENERATE BATCH ID */
 
   const count = await Batch.countDocuments()
 
   const batchId =
    "HB-" + (count+1).toString().padStart(4,"0")
 
+
+  /* GET PREVIOUS BLOCK */
+
   const lastBlock = await Batch
    .findOne()
-   .sort({ createdAt:-1 })
+   .sort({createdAt:-1})
 
   const previousHash =
    lastBlock ? lastBlock.hash : "GENESIS"
+
+
+  /* GOOGLE MAP IMAGE */
 
   const lat = req.body.latitude
   const lon = req.body.longitude
@@ -90,6 +114,8 @@ router.post("/batches", async (req,res)=>{
   const geoImage =
   `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=15&size=600x300&markers=color:red%7C${lat},${lon}`
 
+
+  /* CREATE BLOCK */
 
   const batch = new Batch({
 
@@ -99,7 +125,7 @@ router.post("/batches", async (req,res)=>{
 
    farmer:farmer.name,
 
-   farmerId:farmer._id,
+   farmerId:farmer._id.toString(),
 
    quantity:req.body.quantity,
 
@@ -124,20 +150,26 @@ router.post("/batches", async (req,res)=>{
   })
 
 
+  /* GENERATE HASH */
+
   batch.hash = batch.generateHash()
+
+
+  /* SAVE BLOCK */
 
   await batch.save()
 
 
-  /* ==========================
-     UPDATE FARMER STATS
-  ========================== */
+  /* UPDATE FARMER STATS */
 
   await Farmer.findByIdAndUpdate(
+
    farmer._id,
+
    {
-    $inc:{ totalHarvests:1 }
+    $inc:{totalHarvests:1}
    }
+
   )
 
 
@@ -146,9 +178,7 @@ router.post("/batches", async (req,res)=>{
  }
  catch(err){
 
-  res.status(500).json({
-   error:err.message
-  })
+  res.status(500).json({error:err.message})
 
  }
 
@@ -180,9 +210,64 @@ router.get("/batch/:batchId", async(req,res)=>{
  }
  catch(err){
 
-  res.status(500).json({
-   error:err.message
+  res.status(500).json({error:err.message})
+
+ }
+
+})
+
+
+/* ==========================
+   VERIFY BLOCKCHAIN CHAIN
+========================== */
+
+router.get("/blockchain/verify", async(req,res)=>{
+
+ try{
+
+  const blocks = await Batch
+   .find()
+   .sort({createdAt:1})
+
+  for(let i=1;i<blocks.length;i++){
+
+   const current = blocks[i]
+   const previous = blocks[i-1]
+
+   if(current.previousHash !== previous.hash){
+
+    return res.json({
+     valid:false,
+     message:"Blockchain chain broken",
+     block:current.batchId
+    })
+
+   }
+
+   const recalculatedHash =
+    current.generateHash()
+
+   if(current.hash !== recalculatedHash){
+
+    return res.json({
+     valid:false,
+     message:"Hash mismatch detected",
+     block:current.batchId
+    })
+
+   }
+
+  }
+
+  res.json({
+   valid:true,
+   message:"Blockchain integrity verified"
   })
+
+ }
+ catch(err){
+
+  res.status(500).json({error:err.message})
 
  }
 
@@ -197,32 +282,30 @@ router.post("/batch/receive", async(req,res)=>{
 
  try{
 
- const { qrData } = req.body
+  const {qrData} = req.body
 
- const batch = await Batch.findOne({
-  batchId:qrData
- })
-
- if(!batch){
-
-  return res.status(404).json({
-   message:"Batch not found"
+  const batch = await Batch.findOne({
+   batchId:qrData
   })
 
- }
+  if(!batch){
 
- batch.status = "received"
+   return res.status(404).json({
+    message:"Batch not found"
+   })
 
- await batch.save()
+  }
 
- res.json(batch)
+  batch.status = "received"
+
+  await batch.save()
+
+  res.json(batch)
 
  }
  catch(err){
 
-  res.status(500).json({
-   error:err.message
-  })
+  res.status(500).json({error:err.message})
 
  }
 

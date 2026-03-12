@@ -8,7 +8,6 @@ import {
  CategoryScale,
  LinearScale,
  BarElement,
- Title,
  Tooltip,
  Legend
 } from "chart.js"
@@ -17,162 +16,138 @@ ChartJS.register(
  CategoryScale,
  LinearScale,
  BarElement,
- Title,
  Tooltip,
  Legend
 )
 
 export default function ReportsPage(){
 
- const [farmer,setFarmer] = useState<any>(null)
- const [production,setProduction] = useState<any>({})
- const [region,setRegion] = useState<any>({})
- const [demand,setDemand] = useState<any>(null)
+const API = "http://localhost:5000"
 
- useEffect(()=>{
+const [farmer,setFarmer] = useState<any>(null)
+const [production,setProduction] = useState<any>({})
+const [region,setRegion] = useState<any>({})
+const [demand,setDemand] = useState<any>(null)
 
-  const id = localStorage.getItem("farmerId")
-  if(!id) return
+useEffect(()=>{
 
-  fetch(`http://localhost:5000/api/farmer/${id}`)
-  .then(res=>res.json())
-  .then(data=>{
+const id = localStorage.getItem("farmerId")
 
-   setFarmer(data)
+if(!id) return
 
-   /* FIXED HERE */
+async function load(){
 
-   fetch(`http://localhost:5000/api/production/${data._id}`)
-   .then(res=>res.json())
-   .then(setProduction)
+const farmerRes = await fetch(`${API}/api/farmer/${id}`)
+const farmerData = await farmerRes.json()
+setFarmer(farmerData)
 
-   fetch(`http://localhost:5000/api/production/region/${data.location}`)
-   .then(res=>res.json())
-   .then(setRegion)
+const prod = await fetch(`${API}/api/production/${farmerData._id}`)
+setProduction(await prod.json())
 
-   fetch(`http://localhost:5000/api/analytics/demand`)
-   .then(res=>res.json())
-   .then(setDemand)
+const reg = await fetch(`${API}/api/production/region/${farmerData.location}`)
+setRegion(await reg.json())
 
-  })
+const dem = await fetch(`${API}/api/analytics/demand`)
+setDemand(await dem.json())
 
- },[])
+}
 
- if(!farmer){
-  return(
-   <div className="text-white text-xl">
-    Loading Reports...
-   </div>
-  )
- }
+load()
 
+},[])
 
- const herbChart = {
-  labels:Object.keys(production.herbs || {}),
-  datasets:[
-   {
-    label:"Herb Production",
-    data:Object.values(production.herbs || {}),
-    backgroundColor:"#22c55e"
-   }
-  ]
- }
+if(!farmer){
+return <div className="text-white p-10">Loading Reports...</div>
+}
 
- const regionChart = {
-  labels:Object.keys(region),
-  datasets:[
-   {
-    label:"Regional Production",
-    data:Object.values(region),
-    backgroundColor:"#4ade80"
-   }
-  ]
- }
+const herbChart={
+labels:Object.keys(production.herbs || {}),
+datasets:[
+{
+label:"Production (kg)",
+data:Object.values(production.herbs || {}),
+backgroundColor:"#22c55e"
+}
+]
+}
 
- return(
+const regionChart={
+labels:Object.keys(region),
+datasets:[
+{
+label:"Regional Production",
+data:Object.values(region),
+backgroundColor:"#4ade80"
+}
+]
+}
 
- <div className="space-y-10">
+return(
 
- <h1 className="text-3xl font-bold">
-  Farm Reports & Analytics
- </h1>
+<div className="space-y-10 text-white">
 
- <div className="grid grid-cols-3 gap-6">
-
-  <div className="bg-[#062c21] p-6 rounded-xl">
-   <p className="text-gray-400 text-sm">Total Harvests</p>
-   <p className="text-2xl font-bold">
-    {production.totalHarvests || 0}
-   </p>
-  </div>
-
-  <div className="bg-[#062c21] p-6 rounded-xl">
-   <p className="text-gray-400 text-sm">Total Production</p>
-   <p className="text-2xl font-bold">
-    {production.totalQuantity || 0} kg
-   </p>
-  </div>
-
-  <div className="bg-[#062c21] p-6 rounded-xl">
-   <p className="text-gray-400 text-sm">Farm Location</p>
-   <p className="text-lg">
-    {farmer.location}
-   </p>
-  </div>
-
- </div>
+<h1 className="text-3xl font-bold">
+Farm Reports & Analytics
+</h1>
 
 
- <div className="bg-[#062c21] p-6 rounded-xl">
+<div className="bg-[#062c21] p-6 rounded">
 
-  <h2 className="text-xl mb-4">
-   Herb Cultivation Statistics
-  </h2>
+<h3>Herb Cultivation</h3>
 
-  <div className="h-[300px]">
-   <Bar data={herbChart}/>
-  </div>
+<div className="h-[300px]">
+<Bar data={herbChart}/>
+</div>
 
- </div>
+</div>
 
 
- <div className="bg-[#062c21] p-6 rounded-xl">
+<div className="bg-[#062c21] p-6 rounded">
 
-  <h2 className="text-xl mb-4">
-   Regional Farmer Comparison
-  </h2>
+<h3>Regional Farmer Comparison</h3>
 
-  <div className="h-[300px]">
-   <Bar data={regionChart}/>
-  </div>
+<div className="h-[300px]">
+<Bar data={regionChart}/>
+</div>
 
- </div>
+</div>
 
 
- {demand &&(
+{demand && (
 
- <div className="grid grid-cols-2 gap-6">
+<div className="grid grid-cols-2 gap-6">
 
-  <div className="bg-[#062c21] p-6 rounded-xl">
-   <p className="text-gray-400">Most Demanded Herb</p>
-   <p className="text-2xl text-green-400 font-bold">
-    {demand.mostDemanded?.[0]}
-   </p>
-  </div>
+<div className="bg-[#062c21] p-6 rounded">
 
-  <div className="bg-[#062c21] p-6 rounded-xl">
-   <p className="text-gray-400">Least Demanded Herb</p>
-   <p className="text-2xl text-yellow-400 font-bold">
-    {demand.leastDemanded?.[0]}
-   </p>
-  </div>
+<p className="text-gray-400">Most Demanded Herb</p>
 
- </div>
+<p className="text-2xl text-green-400 font-bold">
+{demand.mostDemanded?.[0] || "N/A"}
+</p>
 
- )}
+<p>{demand.mostDemanded?.[1] || 0} kg produced</p>
 
- </div>
+</div>
 
- )
+
+<div className="bg-[#062c21] p-6 rounded">
+
+<p className="text-gray-400">Least Demanded Herb</p>
+
+<p className="text-2xl text-yellow-400 font-bold">
+{demand.leastDemanded?.[0] || "N/A"}
+</p>
+
+<p>{demand.leastDemanded?.[1] || 0} kg produced</p>
+
+</div>
+
+</div>
+
+)}
+
+</div>
+
+)
 
 }

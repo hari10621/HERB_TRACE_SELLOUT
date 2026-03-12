@@ -1,51 +1,51 @@
-const express = require("express")
-const router = express.Router()
+    const express = require("express")
+    const router = express.Router()
 
-const Packet = require("../models/Packet")
+    const Packet = require("../models/Packet")
 
-router.post("/packets/create", async(req,res)=>{
+    router.post("/packets/create", async(req,res)=>{
 
- try{
+    try{
 
- const {batchId,herbName,totalWeight,packetWeight} = req.body
+    const {batchId,herbName,totalWeight,packetWeight} = req.body
 
- const totalPackets = Math.floor(totalWeight/packetWeight)
+    const totalPackets = Math.floor(totalWeight/packetWeight)
 
- let packets=[]
+    let packets=[]
 
- for(let i=0;i<totalPackets;i++){
+    for(let i=0;i<totalPackets;i++){
 
- const packetId="PKT"+Date.now()+i
+    const packetId="PKT"+Date.now()+i
 
- const packet={
+    const packet={
 
- packetId,
- batchId,
- herbName,
- weight:packetWeight,
- qrCode:`http://localhost:3000/trace/${packetId}`,
- status:"available",
- createdAt:new Date()
+    packetId,
+    batchId,
+    herbName,
+    weight:packetWeight,
+    qrCode:`http://localhost:3000/trace/${packetId}`,
+    status:"available",
+    createdAt:new Date()
 
- }
+    }
 
- packets.push(packet)
+    packets.push(packet)
 
- }
+    }
 
- await Packet.insertMany(packets)
+    await Packet.insertMany(packets)
 
- res.json({
- message:"Packets generated",
- packets
- })
+    res.json({
+    message:"Packets generated",
+    packets
+    })
 
- }catch(err){
+    }catch(err){
 
- res.status(500).json({error:err.message})
+    res.status(500).json({error:err.message})
 
- }
+    }
 
-})
+    })
 
-module.exports = router
+    module.exports = router

@@ -13,50 +13,45 @@ export default function FarmerLogin(){
 
  async function login(){
 
-  try{
+try{
 
-   setLoading(true)
+setLoading(true)
 
-   const res = await fetch("http://localhost:5000/api/farmer/login",{
-    method:"POST",
-    headers:{
-     "Content-Type":"application/json"
-    },
-    body:JSON.stringify({ email,password })
-   })
+const res = await fetch("http://localhost:5000/api/farmer/login",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({email,password})
+})
 
-   const data = await res.json()
+const data = await res.json()
 
-   if(!res.ok){
+if(!res.ok){
 
-    alert(data.message || "Login failed")
-    setLoading(false)
-    return
+alert(data.message || "Login failed")
+setLoading(false)
+return
 
-   }
+}
 
-   // STORE FARMER ID
-   localStorage.setItem("farmerId",data._id)
+localStorage.setItem("farmerId",data._id)
+localStorage.setItem("farmerName",data.name)
 
-   console.log("Stored farmerId:",data._id)
+router.push("/dashboard/farmer/home")
 
-   // SMALL DELAY (ensures storage is written)
-   setTimeout(()=>{
-    router.push("/dashboard/farmer/home")
-   },200)
+}catch(err){
 
-  }
-  catch(err){
+console.log(err)
+alert("Server error")
 
-   console.log(err)
-   alert("Server error")
+}finally{
 
-  }
-  finally{
-   setLoading(false)
-  }
+setLoading(false)
 
- }
+}
+
+}
 
  return(
 

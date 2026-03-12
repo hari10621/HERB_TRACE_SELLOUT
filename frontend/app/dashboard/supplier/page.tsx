@@ -6,134 +6,138 @@ import SupplierComparison from "@/components/SupplierComparison"
 
 export default function SupplierDashboard(){
 
-const [supplier,setSupplier] = useState<any>(null)
-const [herbData,setHerbData] = useState<any>([])
-const [supplierData,setSupplierData] = useState<any>([])
+ const API = "http://localhost:5000"
 
-useEffect(()=>{
+ const [supplier,setSupplier] = useState<any>(null)
+ const [herbData,setHerbData] = useState<any[]>([])
+ const [supplierData,setSupplierData] = useState<any[]>([])
 
-/* GET SUPPLIER ID FROM LOGIN */
+ useEffect(()=>{
 
-const supplierId = localStorage.getItem("supplierId")
+  const supplierId = localStorage.getItem("supplierId")
 
-if(!supplierId){
- console.error("Supplier not logged in")
- return
-}
+  if(!supplierId){
+   console.error("Supplier not logged in")
+   return
+  }
 
-/* LOAD SUPPLIER PROFILE */
+  /* LOAD SUPPLIER PROFILE */
 
-fetch(`http://localhost:5000/api/supplier/${supplierId}`)
-.then(res=>res.json())
-.then(data=>setSupplier(data))
+  fetch(`${API}/api/supplier/${supplierId}`)
+  .then(res=>res.json())
+  .then(data=>setSupplier(data))
 
-/* LOAD HERB GRAPH DATA */
+  /* LOAD HERB PROCESSING DATA */
 
-fetch("http://localhost:5000/api/analytics/herbs")
-.then(res=>res.json())
-.then(data=>setHerbData(data))
+  fetch(`${API}/api/analytics/herbs`)
+  .then(res=>res.json())
+  .then(data=>setHerbData(data))
+  .catch(()=>setHerbData([]))
 
-/* LOAD SUPPLIER COMPARISON GRAPH */
+  /* LOAD SUPPLIER COMPARISON DATA */
 
-fetch("http://localhost:5000/api/analytics/suppliers")
-.then(res=>res.json())
-.then(data=>setSupplierData(data))
+  fetch(`${API}/api/analytics/suppliers`)
+  .then(res=>res.json())
+  .then(data=>setSupplierData(data))
+  .catch(()=>setSupplierData([]))
 
-},[])
+ },[])
 
-if(!supplier){
- return <p className="text-white p-10">Loading Supplier Data...</p>
-}
+ if(!supplier){
+  return <p className="text-white p-10">Loading Supplier Data...</p>
+ }
 
-return(
+ return(
 
-<div>
+ <div className="space-y-8">
 
-<h1 className="text-3xl font-bold text-green-400 mb-6">
-Supplier Dashboard
-</h1>
+  <h1 className="text-3xl font-bold text-green-400">
+   Supplier Dashboard
+  </h1>
 
-{/* PROFILE CARD */}
+  {/* PROFILE */}
 
-<div className="bg-[#083d34] p-6 rounded-xl flex items-center gap-6 mb-6">
+  <div className="bg-[#083d34] p-6 rounded-xl flex items-center gap-6">
 
-<img
-src={`http://localhost:5000${supplier.profilePhoto}`}
-className="w-24 h-24 rounded-full border-4 border-green-400"
-/>
+   <img
+    src={`http://localhost:5000${supplier.profilePhoto}`}
+    className="w-24 h-24 rounded-full border-4 border-green-400"
+   />
 
-<div>
+   <div>
 
-<h2 className="text-2xl font-bold text-white">
-{supplier.name}
-</h2>
+    <h2 className="text-2xl font-bold text-white">
+     {supplier.name}
+    </h2>
 
-<p className="text-green-300">
-⭐ {supplier.rating}/5
-</p>
+    <p className="text-green-300">
+     ⭐ {supplier.rating}/5
+    </p>
 
-<p className="text-gray-300">
-{supplier.companyName}
-</p>
+    <p className="text-gray-300">
+     {supplier.companyName}
+    </p>
 
-<p className="text-gray-400 text-sm">
-License: {supplier.licenseNumber}
-</p>
+    <p className="text-gray-400 text-sm">
+     License: {supplier.licenseNumber}
+    </p>
 
-<p className="text-gray-400 text-sm">
-Location: {supplier.location}
-</p>
+    <p className="text-gray-400 text-sm">
+     Location: {supplier.location}
+    </p>
 
-</div>
+   </div>
 
-</div>
+  </div>
 
-{/* INFO CARDS */}
 
-<div className="grid grid-cols-4 gap-6 mb-6">
+  {/* STATS */}
 
-<div className="bg-[#083d34] p-6 rounded-xl">
-<p className="text-gray-300">Batches Received</p>
-<h2 className="text-2xl text-green-400 font-bold">
-{supplier.totalBatchesReceived}
-</h2>
-</div>
+  <div className="grid grid-cols-4 gap-6">
 
-<div className="bg-[#083d34] p-6 rounded-xl">
-<p className="text-gray-300">Processed Herbs</p>
-<h2 className="text-2xl text-green-400 font-bold">
-{supplier.processedHerbs}
-</h2>
-</div>
+   <div className="bg-[#083d34] p-6 rounded-xl">
+    <p className="text-gray-300">Batches Received</p>
+    <h2 className="text-2xl text-green-400 font-bold">
+     {supplier.totalBatchesReceived}
+    </h2>
+   </div>
 
-<div className="bg-[#083d34] p-6 rounded-xl">
-<p className="text-gray-300">Inventory Stock</p>
-<h2 className="text-2xl text-green-400 font-bold">
-{supplier.inventoryStock} kg
-</h2>
-</div>
+   <div className="bg-[#083d34] p-6 rounded-xl">
+    <p className="text-gray-300">Processed Herbs</p>
+    <h2 className="text-2xl text-green-400 font-bold">
+     {supplier.processedHerbs} kg
+    </h2>
+   </div>
 
-<div className="bg-[#083d34] p-6 rounded-xl">
-<p className="text-gray-300">Experience</p>
-<h2 className="text-2xl text-green-400 font-bold">
-{supplier.experience} yrs
-</h2>
-</div>
+   <div className="bg-[#083d34] p-6 rounded-xl">
+    <p className="text-gray-300">Inventory Stock</p>
+    <h2 className="text-2xl text-green-400 font-bold">
+     {supplier.inventoryStock} kg
+    </h2>
+   </div>
 
-</div>
+   <div className="bg-[#083d34] p-6 rounded-xl">
+    <p className="text-gray-300">Experience</p>
+    <h2 className="text-2xl text-green-400 font-bold">
+     {supplier.experience} yrs
+    </h2>
+   </div>
 
-{/* CHARTS */}
+  </div>
 
-<div className="grid grid-cols-2 gap-6">
 
-<SupplierCharts data={herbData} />
+  {/* CHARTS */}
 
-<SupplierComparison data={supplierData} />
+  <div className="grid grid-cols-2 gap-6">
 
-</div>
+   <SupplierCharts data={herbData} />
 
-</div>
+   <SupplierComparison data={supplierData} />
 
-)
+  </div>
+
+ </div>
+
+ )
 
 }
